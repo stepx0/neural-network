@@ -1,47 +1,65 @@
 #include <stddef.h>
+#include <math.h>
 #include "activation.h"
+#include "tensor_utils.h"
 
 float sigmoid(float x) {
     return 1.f / (1.f + expf(-x));
 }
 
-/* The output parameter is expected to already be the result of the sigmoid function,
- * so we can avoid redundant computation and ensure better performance. */
+/* 
+ * The output parameter is expected to already be the result of the sigmoid function,
+ * so we can avoid redundant computation and ensure better performance.
+ */
 float sigmoid_derivative(float output) {
     return output * (1.f - output);
 }
 
 float relu(float x) {
-    return x > 0 ? x : 0.f;
+    return (x > 0) ? x : 0.f;
 }
 
 float relu_derivative(float x) {
-    return x > 0 ? 1.f : 0.f;
+    return (x > 0) ? 1.f : 0.f;
 }
 
+/*
+ * Custom implementation of tanh, for educational purposes.
+ * For better performance and precision, consider using tanh() from <math.h>.
+ *
+ * To improve efficiency, 'e_x_negative' can be replaced with (1.0f / e_x), to avoid two calls to expf().
+ * This lighter version proposed slightly reduces precision.
+ */
 float tanh(float x) {
-    return ((expf(x) - expf(-x))/(expf(x) + expf(-x)));
+    float e_x = expf(x);
+    float e_x_negative = expf(-x);
+
+    return ((e_x - e_x_negative)/(e_x + e_x_negative));
 }
 
-/* The output parameter is expected to already be the result of the tanh function,
- * so we can avoid redundant computation and ensure better performance. */
+/* 
+ * The output parameter is expected to already be the result of the tanh function,
+ * so we can avoid redundant computation and ensure better performance.
+ */
 float tanh_derivative(float output) {
     return 1.f - output * output;
 }
 
 float leaky_relu(float x) {
-    return x > 0 ? x : 0.01f;
+    return (x > 0) ? x : 0.01f;
 }
 
 float leaky_relu_derivative(float x) {
     return (x > 0) ? 1.f : 0.01f;
 }
 
-/* input: tensor flattened into a 1D array
+/* 
+ * input: tensor flattened into a 1D array
  * output: it's also a flattened array
  * dims: array that contains input dimension for each axis
  * ndim: dims size
- * axis: axis where to apply the softmax function */
+ * axis: axis where to apply the softmax function
+ */
 void softmax(const float* input, float* output, const size_t* dims, size_t ndim, size_t axis) {
     
     size_t total = 1; // total input items
@@ -86,113 +104,7 @@ void softmax(const float* input, float* output, const size_t* dims, size_t ndim,
     free(output_slice);
 }
 
-/* 
- * Convert a flat linear index (i.e., slice index) into a set of multidimensional indices 
- * for a tensor, excluding the axis along which softmax is applied.
- *
- * Parameters:
- * - linear_idx: Current slice index (from 0 to slice_count - 1)
- * - dims: Array containing the size of each dimension of the input tensor
- * - ndim: Number of dimensions (i.e., length of dims[])
- * - axis: The axis along which softmax is applied (this axis is excluded in out_indices)
- * - out_indices: Output array of size (ndim - 1) that stores the computed indices 
- *                for all dimensions except the softmax axis
- */
-void linear_to_multi_index(size_t linear_idx, const size_t* dims, size_t ndim, size_t axis, size_t* out_indices) {
-    for (int i = ndim - 1, j = ndim - 2; i >= 0; i--) {
-        if ((size_t)i == axis) continue;
-        out_indices[j] = linear_idx % dims[i];
-        linear_idx /= dims[i];
-        j--;
-    }
-}
-
 /*
- * Calculates the flat (1D) offset in the input/output array corresponding to the given multi-dimensional indices.
- *
- * Parameters:
- * - indices: Array containing the multi-dimensional indices of the current slice (excluding the axis dimension).
- * - dims: Array containing the size of each dimension of the input tensor.
- * - ndim: Number of dimensions (length of dims).
- * - axis: The axis along which softmax is applied (this axis is excluded from indices).
- * - axis_index: The index along the 'axis' dimension.
- *
- * Returns:
- * - The computed flat index (offset) in the 1D input/output array.
- */
-size_t calc_offset(const size_t* indices, const size_t* dims, size_t ndim, size_t axis, size_t axis_index, const size_t* strides) {
-    size_t offset = 0;
-    for (int i = 0; i < ndim; i++) {
-        size_t idx;
-        if ((size_t)i == axis) {
-            idx = axis_index;  // index varies along the 'axis'
-        } else {
-            // take index from 'indices' array, skipping the 'axis' dimension
-            size_t pos = i < (int)axis ? i : i - 1;
-            idx = indices[pos];
-        }
-        offset += idx * strides[i];
-    }
-    return offset;
-}
-
-/*
- * Computes the strides for each dimension of a tensor.
- *
- * Parameters:
- * - dims: Array containing the size of each dimension of the input tensor.
- * - ndim: Number of dimensions (length of dims).
- * - strides: Output array where the computed strides for each dimension will be stored.
- *            Must be preallocated with at least ndim elements.
- *
- * Explanation:
- * The stride for a dimension defines how many elements in the flattened (1D) array
- * you need to skip to move by one step along that dimension in the original tensor.
- * 
- * The stride of the last dimension is always 1, since elements along this dimension
- * are simply stored contiguously in memory by design.
- * 
- * For dimension i (from right to left), the stride is calculated as:
- *   strides[i] = strides[i+1] * dims[i+1]
- * 
- * This means to move one step along dimension i, you skip strides[i] elements in the 1D array.
- */
-void compute_strides(const size_t* dims, size_t ndim, size_t* strides) {
-    strides[ndim - 1] = 1;
-    for (int i = ndim - 2; i >= 0; i--) {
-        strides[i] = strides[i + 1] * dims[i + 1];
-    }
-}
-
-/**
- * Applies the softmax function to a 1D input vector.
- *
- * This function performs a numerically stable softmax computation by subtracting
- * the maximum input value before exponentiation to avoid overflow.
- *
- * Parameters:
- * - input: Pointer to the input array of floats.
- * - output: Pointer to the array where the output will be written.
- * - length: Number of elements in the input and output arrays.
- */
-void softmax_vector(const float* input, float* output, size_t length) {
-    if (length == 0) return;
-
-    float max_val = input[0];
-    for (size_t i = 1; i < length; i++)
-        if (input[i] > max_val)
-            max_val = input[i];
-
-    float sum = 0.f;
-    for (size_t i = 0; i < length; i++) {
-        output[i] = expf(input[i] - max_val);
-        sum += output[i];
-    }
-    for (size_t i = 0; i < length; i++)
-        output[i] /= sum;
-}
-
-/**
  * Computes the derivative of the softmax function for a given softmax output vector.
  *
  * Note: This implementation assumes you're applying the derivative for a softmax
@@ -222,19 +134,6 @@ void softmax_derivative(const float* softmax_output, float* output_derivative, s
 /*
  * Computes the Jacobian matrix of the softmax function for a given input vector.
  *
- * The softmax Jacobian is an n x n matrix where each element J[i][j] represents
- * the partial derivative of the i-th softmax output with respect to the j-th input:
- *
- *   J[i][j] = s_i * (delta_ij - s_j)
- *
- * where s_i and s_j are the softmax outputs, and delta_ij is the Kronecker delta
- * (1 if i == j, 0 otherwise).
- *
- * This matrix is symmetric and captures the interaction between all output components.
- * It is mainly used in theoretical analyses and custom backpropagation implementations,
- * but rarely computed explicitly in typical neural network training due to its
- * computational complexity (O(n^2) for input size n).
- *
  * Parameters:
  * - softmax_output: Pointer to the softmax output vector.
  * - jacobian: Pointer to a preallocated 2D array (flattened as 1D) of size length*length
@@ -242,7 +141,7 @@ void softmax_derivative(const float* softmax_output, float* output_derivative, s
  * - length: The size of the softmax output vector.
  *
  * Note:
- * The Jacobian is stored in row-major order:
+ * The Jacobian is stored in a row-major order vector:
  *   jacobian[i * length + j] = d softmax[i] / d input[j]
  */
 void softmax_jacobian_derivative(const float* softmax_output, float* jacobian, size_t length) {
@@ -256,3 +155,58 @@ void softmax_jacobian_derivative(const float* softmax_output, float* jacobian, s
         }
     }
 }
+
+float elu(float x, float alpha) {
+    return (x >= 0.f) ? x : (alpha * (expf(x) - 1.f));
+}
+
+
+float elu_derivative(float x, float alpha) {
+    return (x > 0.f) ? 1.f : (alpha * expf(x));
+}
+
+float swish(float x) {
+    return x * sigmoid(x);
+}
+
+float swish_derivative(float x) {
+    float sigm_x = sigmoid(x);
+
+    return sigm_x + (x * sigm_x * (1 - sigm_x));
+}
+
+float gelu(float x) {
+    return x * 0.5f * (1+erff(x / SQRTF_2));
+}
+
+/*
+ * Derivative formula:
+ * dx/d​[x ⋅ Φ(x)] = Φ(x) + x ⋅ ϕ(x)
+ * 
+ * Φ(x) = 0.5 ⋅ (1 + erf(x / √(2)))
+ * ϕ(x) = (1/(√(2*π)) ⋅ expf(-0.5 ⋅ x^2))
+ */
+float gelu_derivative(float x) {
+    float Phi = 0.5f * (1.0f + erff(x / SQRTF_2));
+    float phi = expf(-0.5f * x * x) / (SQRTF_2 * M_PIF);
+
+    return Phi + x * phi;
+}
+
+float gelu_approx(float x) {
+    float x3 = x * x * x;
+    float inner = SQRTF_2_OVER_PI * (x + GELU_COEFF * x3);
+    return 0.5f * x * (1.0f + tanhf(inner));
+}
+
+float gelu_approx_derivative(float x) {
+    float x2 = x * x;
+    float x3 = x * x * x;
+    float tan_u = tanh(SQRTF_2_OVER_PI * (x + GELU_COEFF * x3));
+    float sech2_u = 1.0f - tan_u * tan_u; // tan_u derivative
+
+    float u_prime = SQRTF_2_OVER_PI * (1.0f + 3.0f * GELU_COEFF * x2);
+
+    return 0.5f * (1 + tan_u) + 0.5f * x * sech2_u * u_prime;
+}
+
