@@ -106,3 +106,15 @@ void softmax_vector(const float* input, float* output, size_t length) {
     for (size_t i = 0; i < length; i++)
         output[i] /= sum;
 }
+
+/* 
+ * Clamp value to range [epsilon, 1 - epsilon].
+ * epsilon is the minimum float positive const close to zero
+ *
+ */
+static inline float clamp_prob(float p) {
+    const float epsilon = 1e-15f;
+    if (p < epsilon) return epsilon;
+    if (p > 1.f - epsilon) return 1.f - epsilon;
+    return p;
+}

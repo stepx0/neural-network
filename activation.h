@@ -41,8 +41,8 @@ float leaky_relu_derivative(float x);
  *      - More complex loss functions or network structures where the simplified form doesn't apply
  *    However, it is more computationally expensive: (O(n²) vs. O(n)).
  *
- * Use `softmax_derivative` for typical training setups (softmax + cross-entropy).
- * Use `softmax_jacobian_derivative` only when the full structure of the derivative is explicitly needed.
+ * Use 'softmax_derivative' for typical training setups (softmax + cross-entropy).
+ * Use 'softmax_jacobian_derivative' only when the full structure of the derivative is explicitly needed.
  */
 void softmax(const float* input, float* output, const size_t* dims, size_t ndim, size_t axis);
 void softmax_derivative(const float* softmax_output, float* output_derivative, size_t length);
@@ -59,7 +59,7 @@ float swish_derivative(float x);
  *
  * 1. gelu(x) — the exact formulation based on the Gaussian cumulative distribution function (CDF):
  *    gelu(x) = x * 0.5 * (1 + erf(x / sqrt(2)))
- *    This version is mathematically precise but computationally expensive due to the use of the `erf` function.
+ *    This version is mathematically precise but computationally expensive due to the use of the 'erf' function.
  *
  * 2. gelu_approx(x) — an approximate but much faster version, used in many deep learning frameworks:
  *        gelu_approx(x) = 0.5 * x * (1 + tanh(√(2/π) * (x + 0.044715 * x^3)))
