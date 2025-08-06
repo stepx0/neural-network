@@ -53,3 +53,15 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Build output
+build/
+train
+
+# Editor config (Visual Studio Code)
+.vscode/
+
+# Backup and temporary files
+*~
+*.swp
+.DS_Store
