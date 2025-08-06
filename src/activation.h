@@ -11,7 +11,7 @@ float sigmoid_derivative(float output);
 float relu(float x);
 float relu_derivative(float x);
 
-float tanh(float x);
+float tanh_custom(float x);
 float tanh_derivative(float x);
 
 float leaky_relu(float x);
