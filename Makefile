@@ -14,7 +14,7 @@ TARGET = train
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ -Wl,-e,mainCRTStartup
+	$(CC) $(CFLAGS) -o $@ $^ -lm
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
