@@ -8,7 +8,7 @@ float sigmoid(float x) {
 }
 
 /* 
- * The output parameter is expected to already be the result of the sigmoid function,
+ * 'output' is expected to already be the result of the sigmoid function,
  * so we can avoid redundant computation and ensure better performance.
  */
 float sigmoid_derivative(float output) {
@@ -38,7 +38,7 @@ float tanh(float x) {
 }
 
 /* 
- * The output parameter is expected to already be the result of the tanh function,
+ * 'output' is expected to already be the result of the tanh function,
  * so we can avoid redundant computation and ensure better performance.
  */
 float tanh_derivative(float output) {
@@ -54,11 +54,12 @@ float leaky_relu_derivative(float x) {
 }
 
 /* 
- * input: tensor flattened into a 1D array
- * output: it's also a flattened array
- * dims: array that contains input dimension for each axis
- * ndim: dims size
- * axis: axis where to apply the softmax function
+ * Params:
+ * - input: tensor flattened into a 1D array
+ * - output: it's also a flattened array
+ * - dims: array that contains input dimension for each axis
+ * - ndim: dims size
+ * - axis: axis where to apply the softmax function
  */
 void softmax(const float* input, float* output, const size_t* dims, size_t ndim, size_t axis) {
     
@@ -121,7 +122,7 @@ void softmax(const float* input, float* output, const size_t* dims, size_t ndim,
  * - output_derivative: Array where the derivative will be stored (same size as softmax_output).
  * - length: Number of elements in the softmax vector.
  *
- * This simplified version assumes you're computing ∂softmax_i/∂z_i = s_i * (1 - s_i)
+ * This simplified version assumes you're computing dsoftmax_i/dz_i = s_i * (1 - s_i)
  * for use cases like standalone gradient inspection or compatibility with other loss functions.
  */
 void softmax_derivative(const float* softmax_output, float* output_derivative, size_t length) {
