@@ -27,7 +27,6 @@ void linear_to_multi_index(size_t linear_idx, const size_t* dims, size_t ndim, s
  *
  * Parameters:
  * - indices: Array containing the multi-dimensional indices of the current slice (excluding the axis dimension).
- * - dims: Array containing the size of each dimension of the input tensor.
  * - ndim: Number of dimensions (length of dims).
  * - axis: The axis along which softmax is applied (this axis is excluded from indices).
  * - axis_index: The index along the 'axis' dimension.
@@ -35,15 +34,15 @@ void linear_to_multi_index(size_t linear_idx, const size_t* dims, size_t ndim, s
  * Returns:
  * - The computed flat index (offset) in the 1D input/output array.
  */
-size_t calc_offset(const size_t* indices, const size_t* dims, size_t ndim, size_t axis, size_t axis_index, const size_t* strides) {
+size_t calc_offset(const size_t* indices, size_t ndim, size_t axis, size_t axis_index, const size_t* strides) {
     size_t offset = 0;
-    for (int i = 0; i < ndim; i++) {
+    for (size_t i = 0; i < ndim; i++) {
         size_t idx;
         if ((size_t)i == axis) {
             idx = axis_index;  // index varies along the 'axis'
         } else {
             // take index from 'indices' array, skipping the 'axis' dimension
-            size_t pos = i < (int)axis ? i : i - 1;
+            size_t pos = i < axis ? i : i - 1;
             idx = indices[pos];
         }
         offset += idx * strides[i];
@@ -105,16 +104,4 @@ void softmax_vector(const float* input, float* output, size_t length) {
     }
     for (size_t i = 0; i < length; i++)
         output[i] /= sum;
-}
-
-/* 
- * Clamp value to range [epsilon, 1 - epsilon].
- * epsilon is the minimum float positive const close to zero
- *
- */
-static inline float clamp_prob(float p) {
-    const float epsilon = 1e-15f;
-    if (p < epsilon) return epsilon;
-    if (p > 1.f - epsilon) return 1.f - epsilon;
-    return p;
 }

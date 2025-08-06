@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdlib.h>
 #include <math.h>
 #include "activation.h"
 #include "tensor_utils.h"
@@ -27,10 +28,10 @@ float relu_derivative(float x) {
  * Custom implementation of tanh, for educational purposes.
  * For better performance and precision, consider using tanh() from <math.h>.
  *
- * To improve efficiency, 'e_x_negative' can be replaced with (1.0f / e_x), to avoid two calls to expf().
+ * To improve efficiency, 'e_x_negative' can be replaced with (1.f / e_x), to avoid two calls to expf().
  * This lighter version proposed slightly reduces precision.
  */
-float tanh(float x) {
+float tanh_custom(float x) {
     float e_x = expf(x);
     float e_x_negative = expf(-x);
 
@@ -85,7 +86,7 @@ void softmax(const float* input, float* output, const size_t* dims, size_t ndim,
 
         // Extract input slice values
         for (size_t i = 0; i < axis_dim; i++) {
-            size_t offset = calc_offset(indices, dims, ndim, axis, i, strides);
+            size_t offset = calc_offset(indices, ndim, axis, i, strides);
             input_slice[i] = input[offset];
         }
 
@@ -94,7 +95,7 @@ void softmax(const float* input, float* output, const size_t* dims, size_t ndim,
 
         // Write results back to output tensor
         for (size_t i = 0; i < axis_dim; i++) {
-            size_t offset = calc_offset(indices, dims, ndim, axis, i, strides);
+            size_t offset = calc_offset(indices, ndim, axis, i, strides);
             output[offset] = output_slice[i];
         }
     }
@@ -149,7 +150,7 @@ void softmax_jacobian_derivative(const float* softmax_output, float* jacobian, s
     for (size_t i = 0; i < length; i++) {
         for (size_t j = 0; j < length; j++) {
             if (i == j) {
-                jacobian[i * length + j] = softmax_output[i] * (1.0f - softmax_output[i]);
+                jacobian[i * length + j] = softmax_output[i] * (1.f - softmax_output[i]);
             } else {
                 jacobian[i * length + j] = -softmax_output[i] * softmax_output[j];
             }
@@ -188,7 +189,7 @@ float gelu(float x) {
  * ϕ(x) = (1/(√(2*π)) ⋅ expf(-0.5 ⋅ x^2))
  */
 float gelu_derivative(float x) {
-    float Phi = 0.5f * (1.0f + erff(x / SQRTF_2));
+    float Phi = 0.5f * (1.f + erff(x / SQRTF_2));
     float phi = expf(-0.5f * x * x) / (SQRTF_2 * M_PIF);
 
     return Phi + x * phi;
@@ -197,16 +198,16 @@ float gelu_derivative(float x) {
 float gelu_approx(float x) {
     float x3 = x * x * x;
     float inner = SQRTF_2_OVER_PI * (x + GELU_COEFF * x3);
-    return 0.5f * x * (1.0f + tanhf(inner));
+    return 0.5f * x * (1.f + tanhf(inner));
 }
 
 float gelu_approx_derivative(float x) {
     float x2 = x * x;
     float x3 = x * x * x;
-    float tan_u = tanh(SQRTF_2_OVER_PI * (x + GELU_COEFF * x3));
-    float sech2_u = 1.0f - tan_u * tan_u; // tan_u derivative
+    float tan_u = tanhf(SQRTF_2_OVER_PI * (x + GELU_COEFF * x3));
+    float sech2_u = 1.f - tan_u * tan_u; // tan_u derivative
 
-    float u_prime = SQRTF_2_OVER_PI * (1.0f + 3.0f * GELU_COEFF * x2);
+    float u_prime = SQRTF_2_OVER_PI * (1.f + 3.f * GELU_COEFF * x2);
 
     return 0.5f * (1 + tan_u) + 0.5f * x * sech2_u * u_prime;
 }
