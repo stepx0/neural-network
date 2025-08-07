@@ -1,7 +1,9 @@
-#ifndef LOSS_H
-#define LOSS_H
+#ifndef LOSS_FUNCTIONS_H
+#define LOSS_FUNCTIONS_H
 
 #include <stddef.h>
+
+// TODO: Think about logic to implement loss functions along a specific axis
 
 float mse_loss(const float* predicted, const float* target, size_t size);
 float mse_derivative(float predicted, float target, size_t size);

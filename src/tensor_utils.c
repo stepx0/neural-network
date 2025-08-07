@@ -2,6 +2,70 @@
 #include "tensor_utils.h"
 
 /* 
+ * Initialize the TensorShape struct:
+ * - Copies the dimensions array
+ * - Computes the strides array based on the dimensions
+ */
+void tensor_shape_init(TensorShape *shape, const size_t *dims, size_t ndim) {
+    shape->ndim = ndim;
+    shape->dims = (size_t*)malloc(ndim * sizeof(size_t));
+    shape->strides = (size_t*)malloc(ndim * sizeof(size_t));
+
+    if (!shape->dims || !shape->strides) {
+        // Handle memory allocation failure (consider more robust error handling in production)
+        free(shape->dims);
+        free(shape->strides);
+        shape->dims = NULL;
+        shape->strides = NULL;
+        shape->ndim = 0;
+        return;
+    }
+
+    for (size_t i = 0; i < ndim; i++) {
+    shape->dims[i] = dims[i];
+    }
+
+    compute_strides(shape->dims, ndim, shape->strides);
+}
+
+/*
+ * Free allocated arrays in TensorShape
+ */
+void tensor_shape_free(TensorShape *shape) {
+    if (shape->dims) free(shape->dims);
+    if (shape->strides) free(shape->strides);
+    shape->dims = NULL;
+    shape->strides = NULL;
+    shape->ndim = 0;
+}
+
+/*
+ *Compute total number of elements in the tensor
+ */
+size_t tensor_shape_volume(const TensorShape *shape) {
+    size_t volume = 1;
+
+    for (size_t i = 0; i < shape->ndim; i++) {
+        volume *= shape->dims[i];
+    }
+
+    return volume;
+}
+
+/*
+ * Compute offset (flat index) given multi-dimensional indices
+ */
+ size_t tensor_shape_offset(const TensorShape *shape, const size_t *indices) {
+    size_t offset = 0;
+
+    for (size_t i = 0; i < shape->ndim; i++) {
+        offset += indices[i] * shape->strides[i];
+    }
+    
+    return offset;
+}
+
+/* 
  * Convert a flat linear index (i.e., slice index) into a set of multidimensional indices 
  * for a tensor, excluding the axis along which softmax is applied.
  *
@@ -27,37 +91,30 @@ void linear_to_multi_index(size_t linear_idx, const size_t* dims, size_t ndim, s
  *
  * Parameters:
  * - indices: Array containing the multi-dimensional indices of the current slice (excluding the axis dimension).
- * - ndim: Number of dimensions (length of dims).
+ * - shape: to get number of dims and strides.
  * - axis: The axis along which softmax is applied (this axis is excluded from indices).
  * - axis_index: The index along the 'axis' dimension.
  *
  * Returns:
  * - The computed flat index (offset) in the 1D input/output array.
  */
-size_t calc_offset(const size_t* indices, size_t ndim, size_t axis, size_t axis_index, const size_t* strides) {
+size_t calc_offset(const size_t* indices, const TensorShape *shape, size_t axis, size_t axis_index) {
     size_t offset = 0;
-    for (size_t i = 0; i < ndim; i++) {
+    for (size_t i = 0; i < shape->ndim; i++) {
         size_t idx;
-        if ((size_t)i == axis) {
-            idx = axis_index;  // index varies along the 'axis'
+        if (i == axis) {
+            idx = axis_index;  // vary along softmax axis
         } else {
-            // take index from 'indices' array, skipping the 'axis' dimension
             size_t pos = i < axis ? i : i - 1;
             idx = indices[pos];
         }
-        offset += idx * strides[i];
+        offset += idx * shape->strides[i];
     }
     return offset;
 }
 
 /*
  * Computes the strides for each dimension of a tensor.
- *
- * Parameters:
- * - dims: Array containing the size of each dimension of the input tensor.
- * - ndim: Number of dimensions (length of dims).
- * - strides: Output array where the computed strides for each dimension will be stored.
- *            Must be preallocated with at least ndim elements.
  *
  * Explanation:
  * The stride for a dimension defines how many elements in the flattened (1D) array
@@ -71,14 +128,17 @@ size_t calc_offset(const size_t* indices, size_t ndim, size_t axis, size_t axis_
  * 
  * This means to move one step along dimension i, you skip strides[i] elements in the 1D array.
  */
-void compute_strides(const size_t* dims, size_t ndim, size_t* strides) {
+void compute_strides(const TensorShape *shape) {
+    size_t ndim = shape->ndim;
+    size_t *strides = shape->strides;
+    const size_t *dims = shape->dims;
+
     strides[ndim - 1] = 1;
-    for (int i = ndim - 2; i >= 0; i--) {
+    for (int i = (int)ndim - 2; i >= 0; i--) {
         strides[i] = strides[i + 1] * dims[i + 1];
     }
 }
-
-/**
+/*
  * Applies the softmax function to a 1D input vector.
  *
  * This function performs a numerically stable softmax computation by subtracting
