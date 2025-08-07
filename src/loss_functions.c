@@ -1,6 +1,6 @@
 #include <stddef.h>
 #include <math.h>
-#include "loss.h"
+#include "loss_functions.h"
 #include "tensor_utils.h"
 
 float mse_loss(const float* predicted, const float* target, size_t size) {
