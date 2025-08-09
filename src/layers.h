@@ -21,7 +21,7 @@ typedef struct {
 /* Scalar activations: forward(x, alpha) and backward(y, alpha) 
  * y = f(x) */
 typedef float (*ActScalarFwd)(float x, float alpha);
-typedef float (*ActScalarBwd)(float y, float alpha);
+typedef float (*ActScalarBwd)(float x, float y, float alpha);
 
 /* Vector activations that operate over whole tensors (e.g., softmax along axis) */
 typedef void (*ActVectorFwd)(const Tensor *in, Tensor *out, const ActParams *p);

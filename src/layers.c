@@ -30,7 +30,10 @@ static size_t product(const size_t *a, size_t n) {
 void act_pipeline_forward(const ActivationPipeline *pipe, const Tensor *in, Tensor *out) {
     // No pipes? copying input in output as is 
     if (pipe == NULL || pipe->count == 0) {
-        if (out != in) {
+    if (out != in) {
+        const int same_storage = (in->data == out->data);
+        const int same_view = same_storage && (in->offset == out->offset);
+        if (!same_view) {
             size_t n = tensor_numel(in);
             const float *src = in->data + in->offset;
             float *dst = out->data + out->offset;
@@ -41,8 +44,9 @@ void act_pipeline_forward(const ActivationPipeline *pipe, const Tensor *in, Tens
                 for (size_t i = 0; i < n; i++) dst[i] = src[i];
             }
         }
-        return;
     }
+    return;
+}
 
     // Check if we have any vector activation steps 
     int has_vector = 0;
@@ -75,7 +79,7 @@ void act_pipeline_forward(const ActivationPipeline *pipe, const Tensor *in, Tens
     }
 
     /* Set up ping-pong: we’ll write alternately into 'out' and 'tmp' if needed.
-       Start reading from 'cur_in', writing to 'cur_out'. */
+     * Start reading from 'cur_in' pointer, writing to 'cur_out' pointer. */
     const Tensor *cur_in = in;
     Tensor *cur_out = out;
 
@@ -83,30 +87,30 @@ void act_pipeline_forward(const ActivationPipeline *pipe, const Tensor *in, Tens
         const ActStep *st = &pipe->steps[s];
 
         if (st->kind == ACT_SCALAR) {
-            /* Scalar elementwise step */
+            // Scalar elementwise step
             size_t n = tensor_numel(cur_in);
 
             if (tensor_is_contiguous(cur_in) && tensor_is_contiguous(cur_out)) {
                 const float *src = cur_in->data + cur_in->offset;
-                float *dst       = cur_out->data + cur_out->offset;
+                float *dst = cur_out->data + cur_out->offset;
 
                 int same_stor = (cur_in->data == cur_out->data);
-                int same_vw   = same_stor && (cur_in->offset == cur_out->offset);
-                size_t bytes  = n * sizeof(float);
+                int same_vw = same_stor && (cur_in->offset == cur_out->offset);
+                size_t bytes = n * sizeof(float);
                 const char *sb = (const char*)src;
-                char *db       = (char*)dst;
+                char *db = (char*)dst;
                 int overlap = same_stor && (db < sb + bytes) && (sb < db + bytes);
 
                 if (same_vw) {
-                    /* true in-place */
+                    // true in-place
                     for (size_t i = 0; i < n; i++)
                         dst[i] = st->fwd.s(dst[i], st->params.v.alpha);
                 } else if (!overlap) {
-                    /* out-of-place (no overlap) */
+                    // out-of-place (no overlap)
                     for (size_t i = 0; i < n; i++)
                         dst[i] = st->fwd.s(src[i], st->params.v.alpha);
                 } else {
-                    /* overlapping: choose direction like memmove */
+                    // overlapping: choose direction like memmove
                     if (dst > src) {
                         for (size_t i = n; i-- > 0; )
                             dst[i] = st->fwd.s(src[i], st->params.v.alpha);
@@ -119,21 +123,24 @@ void act_pipeline_forward(const ActivationPipeline *pipe, const Tensor *in, Tens
                 /* TODO: non-contiguous path — implement a strided iterator.
                  * For now, fall back to flat loop assuming compatible layout. */
                 const float *src = cur_in->data + cur_in->offset;
-                float *dst       = cur_out->data + cur_out->offset;
+                float *dst = cur_out->data + cur_out->offset;
                 for (size_t i = 0; i < n; i++)
                     dst[i] = st->fwd.s(src[i], st->params.v.alpha);
             }
 
-            /* After scalar step, next reads from what we wrote */
+            // After scalar step, next reads from what we wrote
             cur_in = cur_out;
         } else {
-            /* Vector step (e.g., softmax). Must not overwrite input mid-compute.
+            /* Vector activation step. Must not overwrite input mid-compute.
                Ensure cur_in != cur_out; if equal and we have scratch, write into tmp. */
             Tensor *target = cur_out;
 
+            /* NOTE: If need_scratch == 0 and cur_in == cur_out (same storage + offset),
+             * vector ops MUST be in-place safe at the slice level (e.g., use per-slice temp).
+             * softmax() impl. already follows this pattern. */
             if ((cur_in->data == cur_out->data) && (cur_in->offset == cur_out->offset)) {
                 if (need_scratch) {
-                    target = &tmp;  /* write to scratch */
+                    target = &tmp; 
                 } else {
                     /* No scratch: if out != in, redirect write to 'out', else this is unsafe.
                        In practice we should ensure caller gave out!=in for vector pipelines. */
