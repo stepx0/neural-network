@@ -1,4 +1,5 @@
 #include "layers.h"
+#include "tensor.h"
 #include <stdlib.h>
 #include <string.h>
 
