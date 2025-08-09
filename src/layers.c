@@ -188,7 +188,7 @@ void act_pipeline_backward(const ActivationPipeline *pipe, const Tensor *y, Tens
             const float *yp = y->data + y->offset;
             float *dyp = dy->data + dy->offset;
             for (size_t i = 0; i < n; i++) {
-                float g = st->bwd.s(yp[i], st->params.v.alpha); // derivative w.r.t. y
+                float g = st->bwd.s(/*x*/ yp[i], /*y*/ yp[i], st->params.v.alpha); // derivative w.r.t. x, y
                 dyp[i] *= g;
             }
         } else {
@@ -247,15 +247,20 @@ void nn_backward(Network *net, const Tensor *x, const Tensor *y,
     const Tensor *cur_y = y;   (void)cur_y;
 
     // Upstream grad starts at dy. dx will hold grad wrt input of the first layer.
-    Tensor *cur_dx = dx;
     Tensor upstream = *dy; // copy metadata; data points to user's grad
 
     for (size_t idx = net->count; idx>0; ) {
         Layer *L = &net->layers[--idx];
         // We pass: x (if cached), y (L->out), dy (upstream), and write dx
-        L->ops.backward(L, NULL, &L->out, &upstream, cur_dx);
+        Tensor tmp_dx;
+        L->ops.backward(L, NULL, &L->out, &upstream, &tmp_dx);
         // Next iteration: upstream becomes dx
-        upstream = *cur_dx;
+        upstream = tmp_dx;
+    }
+
+    // Return final gradient w.r.t. network input as a shallow view to caller.
+    if (dx) {
+        *dx = upstream;
     }
 }
 
