@@ -171,10 +171,10 @@ void act_pipeline_forward(const ActivationPipeline *pipe, const Tensor *in, Tens
 }
 
 void act_pipeline_backward(const ActivationPipeline *pipe, const Tensor *y, Tensor *dy) {
-    if (pipe == NULL || pipe->count == 0) return; // dy already holds upstream grad
+    if (pipe==NULL || pipe->count==0) return; // dy already holds upstream grad
 
     // Apply steps in reverse. For scalar steps we do elementwise: dy *= f'(y).
-    for (size_t r = pipe->count; r > 0;) {
+    for (size_t r=pipe->count; r>0; ) {
         const ActStep *st = &pipe->steps[--r];
         if (st->kind == ACT_SCALAR) {
             size_t n = tensor_numel(y);

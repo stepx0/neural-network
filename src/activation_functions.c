@@ -75,7 +75,7 @@ void softmax(const float* input, float* output, const TensorShape* shape, size_t
     float* output_slice = malloc(axis_dim * sizeof(float));
 
     for (size_t slice = 0; slice < slice_count; slice++) {
-        linear_to_multi_index(slice, shape->dims, shape->ndim, axis, indices);
+        linear_to_multi_index(slice, shape, axis, indices);
 
         for (size_t i = 0; i < axis_dim; i++) {
             size_t offset = calc_offset(indices, shape->ndim, axis, i, shape->strides);

@@ -19,7 +19,7 @@ float relu(float x, float alpha);
 float relu_derivative(float x, float alpha);
 
 float tanh_custom(float x, float alpha);
-float tanh_derivative(float x, float alpha);
+float tanh_derivative(float output, float alpha);
 
 float leaky_relu(float x, float alpha);
 float leaky_relu_derivative(float x, float alpha);
@@ -47,11 +47,11 @@ float swish_derivative(float x, float alpha);
  *
  * Both versions are differentiable, and their respective derivatives are provided below.
  */
-float gelu(float x);
-float gelu_derivative(float x);
+float gelu(float x, float alpha);
+float gelu_derivative(float x, float alpha);
 
-float gelu_approx(float x);
-float gelu_approx_derivative(float x);
+float gelu_approx(float x, float alpha);
+float gelu_approx_derivative(float x, float alpha);
 
 
 
@@ -86,8 +86,8 @@ float gelu_approx_derivative(float x);
  * Use 'softmax_derivative' for typical training setups (softmax + cross-entropy).
  * Use 'softmax_jacobian_derivative' only when the full structure of the derivative is explicitly needed.
  */
-void softmax(const float* input, float* output, const TensorShape* shape, size_t axis);
-void softmax_derivative(const float* softmax_output, float* output_derivative, size_t length);
+void softmax(const float* input, float* output, size_t length);
+void softmax_derivative(const float* softmax_output, float* derivative_output, size_t length);
 void softmax_jacobian_derivative(const float* softmax_output, float* jacobian, size_t length);
 
 
