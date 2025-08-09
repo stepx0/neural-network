@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdlib.h>
 #include "tensor_utils.h"
 
 /* 
@@ -25,7 +26,7 @@ void tensor_shape_init(TensorShape *shape, const size_t *dims, size_t ndim) {
     shape->dims[i] = dims[i];
     }
 
-    compute_strides(shape->dims, ndim, shape->strides);
+    compute_strides(shape);
 }
 
 /*
@@ -77,11 +78,11 @@ size_t tensor_shape_volume(const TensorShape *shape) {
  * - out_indices: Output array of size (ndim - 1) that stores the computed indices 
  *                for all dimensions except the softmax axis
  */
-void linear_to_multi_index(size_t linear_idx, const size_t* dims, size_t ndim, size_t axis, size_t* out_indices) {
-    for (int i = ndim - 1, j = ndim - 2; i >= 0; i--) {
+void linear_to_multi_index(size_t linear_idx, const TensorShape *shape, size_t axis, size_t *out_indices) {
+    for (int i = shape->ndim - 1, j = shape->ndim - 2; i >= 0; i--) {
         if ((size_t)i == axis) continue;
-        out_indices[j] = linear_idx % dims[i];
-        linear_idx /= dims[i];
+        out_indices[j] = linear_idx % shape->dims[i];
+        linear_idx /= shape->dims[i];
         j--;
     }
 }

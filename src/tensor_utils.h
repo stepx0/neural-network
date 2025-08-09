@@ -24,7 +24,7 @@ size_t tensor_shape_volume(const TensorShape *shape);
 size_t tensor_shape_offset(const TensorShape *shape, const size_t *indices);
 void linear_to_multi_index(size_t linear_idx, const TensorShape *shape, size_t axis, size_t *out_indices);
 
-size_t calc_offset(const size_t* indices, size_t ndim, size_t axis, size_t axis_index, const size_t* strides);
+size_t calc_offset(const size_t* indices, const TensorShape *shape, size_t axis, size_t axis_index);
 void compute_strides(const size_t* dims, size_t ndim, size_t* strides);
 void softmax_vector(const float* input, float* output, size_t length);
 
