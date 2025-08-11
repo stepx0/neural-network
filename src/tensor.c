@@ -22,6 +22,15 @@ static void tensor_zero(Tensor *t) {
     t->owns_data = 0;
 }
 
+int tensor_create_random(Tensor *t, const size_t *dims, size_t ndim, float scale) {
+    if (tensor_create(t, dims, ndim) != 0) return -1;
+    for (size_t i = 0; i < tensor_numel(t); i++) {
+        t->data[i] = ((float)rand() / RAND_MAX) * 2.f - 1.f; // [-1, 1]
+        t->data[i] *= scale; // optional scaling
+    }
+    return 0;
+}
+
 int tensor_create(Tensor *t, const size_t *dims, size_t ndim) {
     if (!t || !dims || ndim == 0) return -1;
 

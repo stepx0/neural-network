@@ -52,8 +52,8 @@ int main(void) {
 
     // Create input & output tensors
     Tensor input, output;
-    tensor_create(&input, dims, 2);
-    tensor_create(&output, dims, 2);
+    tensor_create_random(&input, dims, 2, 1);
+    tensor_create_random(&output, dims, 2, 1);
 
     // Fill input with test data
     for (size_t i = 0; i < tensor_numel(&input); i++) {

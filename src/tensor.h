@@ -13,9 +13,11 @@ typedef struct Tensor {
     int     owns_data;// 1 => free(data) on destroy
 } Tensor;
 
-// --- Minimal tensor helpers (you can expand later) ---
-// Create an owning, contiguous tensor. dims length = ndim. Returns 0 on success.
+// --- Minimal tensor helpers (we can expand later) ---
+// Create an owning, contiguous tensor not intialized. dims length = ndim. Returns 0 on success.
 int tensor_create(Tensor *t, const size_t *dims, size_t ndim);
+// Calls 'tensor create' and populates it with rand values between [-1, 1]. Returns 0 on success.
+int tensor_create_random(Tensor *t, const size_t *dims, size_t ndim, float scale);
 // Create a non-owning view into an existing tensor (no allocation, just metadata).
 void tensor_view(Tensor *view, const Tensor *base,
                  const size_t *dims, const size_t *strides,

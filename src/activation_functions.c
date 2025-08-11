@@ -88,6 +88,7 @@ float swish(float x, float alpha) {
 
 float swish_derivative(float x, float y, float alpha) {
     (void)y; // unused
+    (void)alpha; // unused
     float sigm_x = sigmoid(x, 0.f);
     return sigm_x + (x * sigm_x * (1 - sigm_x));
 }

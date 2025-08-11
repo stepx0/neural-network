@@ -1,6 +1,8 @@
 #ifndef ACTIVATION_FUNCTIONS_H
 #define ACTIVATION_FUNCTIONS_H
 
+#include <stddef.h>
+#include "tensor.h"
 
 #define GELU_COEFF 0.044715f
 
@@ -13,22 +15,22 @@
  * Functions that do not require 'alpha' simply ignore it.
  */
 float sigmoid(float x, float alpha);
-float sigmoid_derivative(float output, float alpha);
+float sigmoid_derivative(float x, float y, float alpha);
 
 float relu(float x, float alpha);
-float relu_derivative(float x, float alpha);
+float relu_derivative(float x, float y, float alpha);
 
 float tanh_custom(float x, float alpha);
-float tanh_derivative(float output, float alpha);
+float tanh_derivative(float x, float y, float alpha);
 
 float leaky_relu(float x, float alpha);
-float leaky_relu_derivative(float x, float alpha);
+float leaky_relu_derivative(float x, float y, float alpha);
 
 float elu(float x, float alpha);
-float elu_derivative(float x, float alpha);
+float elu_derivative(float x, float y, float alpha);
 
 float swish(float x, float alpha);
-float swish_derivative(float x, float alpha);
+float swish_derivative(float x, float y, float alpha);
 
 /*
  * Gaussian Error Linear Unit (GELU) activation exists in two main forms:
@@ -48,10 +50,10 @@ float swish_derivative(float x, float alpha);
  * Both versions are differentiable, and their respective derivatives are provided below.
  */
 float gelu(float x, float alpha);
-float gelu_derivative(float x, float alpha);
+float gelu_derivative(float x, float y, float alpha);
 
 float gelu_approx(float x, float alpha);
-float gelu_approx_derivative(float x, float alpha);
+float gelu_approx_derivative(float x, float y, float alpha);
 
 
 
@@ -86,9 +88,10 @@ float gelu_approx_derivative(float x, float alpha);
  * Use 'softmax_derivative' for typical training setups (softmax + cross-entropy).
  * Use 'softmax_jacobian_derivative' only when the full structure of the derivative is explicitly needed.
  */
-void softmax(const float* input, float* output, size_t length);
+
+/* Tensor-based softmax over an arbitrary axis. */
+void softmax_tensor(const Tensor *t, const float* input, float* output, size_t axis);
 void softmax_derivative(const float* softmax_output, float* derivative_output, size_t length);
 void softmax_jacobian_derivative(const float* softmax_output, float* jacobian, size_t length);
-
 
 #endif
