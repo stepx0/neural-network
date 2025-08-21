@@ -1,6 +1,6 @@
+#include "loss_functions.h"
 #include <stddef.h>
 #include <math.h>
-#include "loss_functions.h"
 
 /* 
  * Clamp value to range [epsilon, 1 - epsilon].

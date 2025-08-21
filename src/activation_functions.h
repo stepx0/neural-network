@@ -1,8 +1,8 @@
 #ifndef ACTIVATION_FUNCTIONS_H
 #define ACTIVATION_FUNCTIONS_H
 
-#include <stddef.h>
 #include "tensor.h"
+#include <stddef.h>
 
 #define GELU_COEFF 0.044715f
 

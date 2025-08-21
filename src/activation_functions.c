@@ -1,8 +1,8 @@
+#include "activation_functions.h"
+#include "tensor.h"
 #include <stddef.h>
 #include <stdlib.h>
 #include <math.h>
-#include "activation_functions.h"
-#include "tensor.h"
 
 #define SQRTF_2_OVER_PI 0.79788456f // ≈ sqrt(2 / π)
 #define SQRTF_2 1.4142136f          // sqrt(2)

@@ -1,9 +1,9 @@
 #ifndef LAYERS_H
 #define LAYERS_H
 
+#include "tensor.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "tensor.h"
 
 /* Activation pipeline (scalar + vector) */
 typedef enum { ACT_SCALAR = 0, ACT_VECTOR = 1 } ActKind;
