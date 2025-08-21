@@ -50,8 +50,26 @@ static int view_fits_base(const Tensor *base, const size_t *dims, const size_t *
         base_numel = n;
     }
 
-    /* max linear index accessed by the view = offset + sum_i (strides[i] * (dims[i]-1)) */
-    size_t max_index = offset;
+    /* Compute the addressable range of the base: [base->offset, base->offset + base_numel - 1],
+       guarding additions against overflow. */
+    if (base_numel == 0) return 0; /* disallow views over empty base for now */
+
+    size_t max_allowed;
+    /* base->offset + (base_numel - 1) with overflow checks */
+    {
+        size_t last = base_numel - 1;
+        if (base->offset > SIZE_MAX - last) return 0;
+        max_allowed = base->offset + last;
+    }
+    const size_t min_allowed = base->offset;
+
+    /* Starting linear index of the view within base */
+    size_t start_index;
+    if (base->offset > SIZE_MAX - offset) return 0;           /* overflow in start computation */
+    start_index = base->offset + offset;
+
+    /* max linear index accessed by the view = start_index + sum_i (strides[i] * (dims[i]-1)) */
+    size_t max_index = start_index;
     for (size_t i = 0; i < ndim; ++i) {
         if (dims[i] == 0) return 0; /* empty dims not allowed for views here */
         size_t add = 0;
@@ -60,7 +78,11 @@ static int view_fits_base(const Tensor *base, const size_t *dims, const size_t *
         max_index += add;
     }
 
-    return max_index < base_numel;
+    /* Containment: [start_index, max_index] must lie within [min_allowed, max_allowed] */
+    if (start_index < min_allowed) return 0;
+    if (max_index > max_allowed) return 0;
+
+    return 1;
 }
 
 // ------------ public API ------------ //
@@ -75,9 +97,9 @@ int tensor_create_random(Tensor *t, const size_t *dims, size_t ndim, float scale
     }
 
     for (size_t i = 0; i < n; ++i) {
-    float r = (float)rand() / (float)RAND_MAX;  // [0,1]
-    t->data[i] = (r * 2.f - 1.f) * scale;       // [0, 2] -> [-1, 1] -> [-scale, +scale]
-}
+        float r = (float)rand() / (float)RAND_MAX;  // [0,1]
+        t->data[i] = (r * 2.f - 1.f) * scale;       // [0, 2] -> [-1, 1] -> [-scale, +scale]
+    }
     return 0;
 }
 
@@ -147,7 +169,7 @@ int tensor_view(Tensor *view, const Tensor *base,
     tensor_zero(view);
 
     view->data = base->data;  /* share data */
-    view->offset = base->offset + offset;
+    view->offset = base->offset + offset;  /* accumulate base offset */
     view->ndim = ndim;
     view->owns_data  = 0;
     view->owns_shape = 1;
