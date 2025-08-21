@@ -4,7 +4,7 @@ CFLAGS = -Wall -Wextra -O2 -std=c11
 SRCDIR = src
 BUILDDIR = build
 
-SRCS = activation_functions.c loss_functions.c tensor.c train.c layers.c main.c
+SRCS = activation_functions.c loss_functions.c tensor.c train.c test.c layers.c main.c
 OBJS = $(patsubst %.c,$(BUILDDIR)/%.o,$(SRCS))
 
 TARGET = train

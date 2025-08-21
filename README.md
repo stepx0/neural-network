@@ -1,4 +1,4 @@
-# Neural Network in C (Work in Progress)
+# Neural Network library in C (Work in Progress)
 
 This project is a **work in progress** aimed at building a fully functional **neural network implementation in C**, primarily for **educational purposes**.
 
