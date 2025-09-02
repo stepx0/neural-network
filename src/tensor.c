@@ -27,14 +27,14 @@ static void tensor_zero(Tensor *t) {
     t->owns_shape = 0;
 }
 
+/* Avoids multiplication overflow */
 static int safe_mul_size(size_t a, size_t b, size_t *out) {
     if (a != 0 && b > SIZE_MAX / a) return -1;
     *out = a * b; return 0;
 }
 
 /* When building a view, verify that the furthest reachable linear index fits base. */
-static int view_fits_base(const Tensor *base, const size_t *dims, const size_t *strides, size_t ndim, size_t offset)
-{
+static int view_fits_base(const Tensor *base, const size_t *dims, const size_t *strides, size_t ndim, size_t offset) {
     if (!base || !dims || !strides || ndim == 0) return 0;
 
     /* base size must be known and not overflowed */
@@ -159,8 +159,7 @@ int tensor_create(Tensor *t, const size_t *dims, size_t ndim) {
 /* View copies shape (dims/strides) into its own small heap blocks */
 int tensor_view(Tensor *view, const Tensor *base,
                 const size_t *dims, const size_t *strides,
-                size_t ndim, size_t offset)
-{
+                size_t ndim, size_t offset) {
     if (!view || !base || !dims || !strides || ndim == 0) return -1;
 
     /* Validate the view fits in base */
