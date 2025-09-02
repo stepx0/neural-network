@@ -1,11 +1,14 @@
 #include "tensor.h"
-#include <cstdint>
+#include <stdint.h>
+#include <assert.h>
 
 // 1) Strides 2x3 -> {3,1}
 static void test_strides(void) {
-    size_t d[2] = {2,3}, s[2];
-    compute_row_major_strides(s, d, 2);
-    assert(s[0]==3 && s[1]==1);
+    Tensor t;
+    size_t dims[2] = {2,3};
+    tensor_create(&t, dims, 2);
+    assert(t.strides[0] == 3 && t.strides[1] == 1);
+    tensor_destroy(&t);
 }
 
 // 2) Owner create/destroy no leaks (basic)
