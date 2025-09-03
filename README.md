@@ -4,7 +4,7 @@ This project is a **work in progress** aimed at building a fully functional **ne
 
 ---
 
-## 📘 Overview
+## Overview
 
 The goal of this project is to:
 
@@ -16,9 +16,9 @@ This is not intended to compete with optimized libraries like TensorFlow, PyTorc
 
 ---
 
-## ⚠️ Status: Work In Progress
+## Status: Work In Progress
 
-> 🛠️ This project is under active development and **not yet complete**.  
+ This project is under active development and **not yet complete**.  
 > You may find missing components, experimental code, and areas subject to change or refactoring.
 
 Currently implemented or in progress:
@@ -33,7 +33,7 @@ Currently implemented or in progress:
 
 ---
 
-## 🛠️ Why C?
+## Why C?
 
 Using **C** forces us to manage memory, computation, and architecture manually, offering a deeper understanding of:
 
@@ -44,7 +44,7 @@ Using **C** forces us to manage memory, computation, and architecture manually, 
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 To compile and run the project, follow these steps:
 
@@ -54,7 +54,7 @@ To compile and run the project, follow these steps:
 - `make` utility
 - (Optional) Linux, macOS, or WSL — tested on Unix-like systems
 
-### 📦 Build Instructions
+### Build Instructions
 
 1. **Clone the repository** (if you haven't already):
 
@@ -76,7 +76,7 @@ To compile and run the project, follow these steps:
 
 ---
 
-## 🧪 Educational Use
+## Educational Use
 This code is designed to be read/modified or even extended.
 Ideal for:
 
@@ -88,19 +88,19 @@ Hobbyists who want to build a neural net without magic black boxes
 
 ---
 
-## 📄 License
+## License
 This project is released under the MIT License.
 You are free to use, modify, and share it for any purpose.
-
+See the [licence](https://en.wikipedia.org/wiki/MIT_License) info for details.
 ---
 
-## 🙏 Contributions
+## Contributions
 This is a solo educational effort for now.
 If you're also learning or interested in contributing (clean code, tests, comments, fixes), feel free to fork the repo or open an issue.
 
 ---
 
-## 💬 Disclaimer
+## Disclaimer
 This is not production-grade software.
 It’s not optimized for production use and focuses on clarity and understanding rather than speed or scalability.
 Use it at your own risk — especially if you plan to build rockets or self-driving cars with it. 😉
