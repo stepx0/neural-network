@@ -3,18 +3,57 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* helper to do products */
+/* helper to do products with overflow detection */
 static size_t product(const size_t *a, size_t n) {
     size_t p = 1;
-
-    for(size_t i=0; i<n; i++) 
-        p *= a[i];
+    if (!a || n == 0) return 1;
     
-
+    for (size_t i = 0; i < n; ++i) {
+        if (a[i] != 0 && p > SIZE_MAX / a[i]) return SIZE_MAX; // overflow sentinel
+        p *= a[i];
+    }
     return p;
 }
 
-/* Activation pipeline */
+/* Internal helper: flat copy with basic overlap handling for contiguous buffers.
+ * Assumes both tensors have the same numel and both can be iterated flatly.
+ * Returns 0 on success, -1 on error.
+ */
+static int flat_copy_with_overlap(const Tensor *in, Tensor *out) {
+    if (!in || !out) return -1;
+    size_t n = tensor_numel(in);
+    if (n == SIZE_MAX) return -1;
+
+    const float *src = in->data + in->offset;
+    float *dst = out->data + out->offset;
+
+    const int same_storage = (in->data == out->data);
+    if (!same_storage) {
+        /* different storage: no overlap possible */
+        for (size_t i = 0; i < n; ++i) dst[i] = src[i];
+        return 0;
+    }
+
+    /* same storage: check byte-range overlap */
+    const size_t bytes = n * sizeof(float);
+    const char *sb = (const char*)src;
+    char *db = (char*)dst;
+    int overlap = (db < sb + bytes) && (sb < db + bytes);
+
+    if (!overlap) {
+        for (size_t i = 0; i < n; ++i) dst[i] = src[i];
+        return 0;
+    }
+
+    /* overlapping ranges: emulate memmove semantics */
+    if (db > sb) {
+        for (size_t i = n; i-- > 0; ) dst[i] = src[i];
+    } else {
+        for (size_t i = 0; i < n; ++i) dst[i] = src[i];
+    }
+    return 0;
+}
+
 /* Activation pipeline
  *
  * Applies a sequence of scalar/vector activations over the whole tensor.
@@ -31,23 +70,26 @@ static size_t product(const size_t *a, size_t n) {
 void act_pipeline_forward(const ActivationPipeline *pipe, const Tensor *in, Tensor *out) {
     // No pipes? copying input in output as is 
     if (pipe == NULL || pipe->count == 0) {
-    if (out != in) {
-        const int same_storage = (in->data == out->data);
-        const int same_view = same_storage && (in->offset == out->offset);
-        if (!same_view) {
-            size_t n = tensor_numel(in);
-            const float *src = in->data + in->offset;
-            float *dst = out->data + out->offset;
-            if (tensor_is_contiguous(in) && tensor_is_contiguous(out)) {
-                memcpy(dst, src, n * sizeof(float));
-            } else {
-                // TODO: strided copy for non-contiguous views 
-                for (size_t i = 0; i < n; i++) dst[i] = src[i];
+        if (out != in) {
+            const int same_storage = (in->data == out->data);
+            const int same_view = same_storage && (in->offset == out->offset);
+            if (!same_view) {
+                size_t n = tensor_numel(in);
+                /* Fast path: both contiguous — use memmove which is safe for overlap */
+                if (tensor_is_contiguous(in) && tensor_is_contiguous(out)) {
+                    const float *src = in->data + in->offset;
+                    float *dst = out->data + out->offset;
+                    memmove(dst, src, n * sizeof(float));
+                } else {
+                    /* Fallback: element-wise flat copy with overlap handling. This assumes
+                     * both tensors can be iterated flatly (same logical layout), which is
+                     * a conservative behavior. For true strided views, we should implement a strided iterator. */
+                    flat_copy_with_overlap(in, out);
+                }
             }
         }
+        return;
     }
-    return;
-}
 
     // Check if we have any vector activation steps 
     int has_vector = 0;
@@ -176,6 +218,7 @@ void act_pipeline_forward(const ActivationPipeline *pipe, const Tensor *in, Tens
     }
 
     if (scratch) free(scratch);
+    tensor_destroy(&tmp);
 }
 
 void act_pipeline_backward(const ActivationPipeline *pipe, const Tensor *y, Tensor *dy) {
@@ -229,16 +272,17 @@ int nn_add_layer(Network *net, const Layer *layer) {
 
 void nn_forward(Network *net, const Tensor *x, Tensor *y) {
     const Tensor *cur_x = x;
-    Tensor *cur_y = y;
-    for (size_t i=0;i<net->count; ++i) {
+    for (size_t i=0; i<net->count; ++i) {
         Layer *L = &net->layers[i];
-        L->ops.forward(L, cur_x, cur_y);
+        /* Ensure we pass the layer's output tensor as the destination so layers
+         * consistently write into L->out and the pipeline wiring is predictable. */
+        L->ops.forward(L, cur_x, &L->out);
         // Next layer input is current output
         cur_x = &L->out; // layers are expected to write their result into L->out (or assign a view to it)
     }
     // Final output: if the last layer didn't write to *y directly, copy/view L->out into *y
-    if (net->count>0 && cur_x != y) {
-        *y = net->layers[net->count-1].out; // shallow assign; caller owns destination policy
+    if (net->count>0 && y && cur_x != y) {
+        *y = *cur_x; // shallow assign; caller owns destination policy
     }
 }
 
@@ -266,7 +310,7 @@ void nn_backward(Network *net, const Tensor *x, const Tensor *y,
 }
 
 void nn_update(Network *net) {
-    for (size_t i=0;i<net->count; ++i) {
+    for (size_t i=0; i<net->count; ++i) {
         Layer *L = &net->layers[i];
         if (L->ops.update) L->ops.update(L, net->learning_rate);
     }
