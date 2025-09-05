@@ -147,19 +147,19 @@ void act_pipeline_forward(const ActivationPipeline *pipe, const Tensor *in, Tens
                 if (same_vw) {
                     // true in-place
                     for (size_t i = 0; i < n; i++)
-                        dst[i] = st->fwd.s(dst[i], st->params.v.alpha);
+                        dst[i] = st->fwd.s(dst[i], st->params.payload.s.alpha);
                 } else if (!overlap) {
                     // out-of-place (no overlap)
                     for (size_t i = 0; i < n; i++)
-                        dst[i] = st->fwd.s(src[i], st->params.v.alpha);
+                        dst[i] = st->fwd.s(src[i], st->params.payload.s.alpha);
                 } else {
                     // overlapping: choose direction like memmove
                     if (dst > src) {
                         for (size_t i = n; i-- > 0; )
-                            dst[i] = st->fwd.s(src[i], st->params.v.alpha);
+                            dst[i] = st->fwd.s(src[i], st->params.payload.s.alpha);
                     } else {
                         for (size_t i = 0; i < n; i++)
-                            dst[i] = st->fwd.s(src[i], st->params.v.alpha);
+                            dst[i] = st->fwd.s(src[i], st->params.payload.s.alpha);
                     }
                 }
             } else {
@@ -168,7 +168,7 @@ void act_pipeline_forward(const ActivationPipeline *pipe, const Tensor *in, Tens
                 const float *src = cur_in->data + cur_in->offset;
                 float *dst = cur_out->data + cur_out->offset;
                 for (size_t i = 0; i < n; i++)
-                    dst[i] = st->fwd.s(src[i], st->params.v.alpha);
+                    dst[i] = st->fwd.s(src[i], st->params.payload.s.alpha);
             }
 
             // After scalar step, next reads from what we wrote
@@ -232,7 +232,7 @@ void act_pipeline_backward(const ActivationPipeline *pipe, const Tensor *y, Tens
             const float *yp = y->data + y->offset;
             float *dyp = dy->data + dy->offset;
             for (size_t i = 0; i < n; i++) {
-                float g = st->bwd.s(/*x*/ yp[i], /*y*/ yp[i], st->params.v.alpha); // derivative w.r.t. x, y
+                float g = st->bwd.s(/*x*/ yp[i], /*y*/ yp[i], st->params.payload.s.alpha); // derivative w.r.t. x, y
                 dyp[i] *= g;
             }
         } else {

@@ -13,9 +13,9 @@ typedef enum { PARAM_NONE = 0, PARAM_ALPHA = 1, PARAM_VECTOR = 2 } ParamKind;
 typedef struct {
     ParamKind kind;
     union {
-        float alpha; // for scalar activations
-        struct { size_t axis; } vec; // vector params kept minimal; tensor carries dims/strides
-    } v;
+        struct { float alpha; } s; // used for scalar activations
+        struct { size_t axis; } v; // vector params kept minimal (tensor carries dims/strides)
+    } payload;
 } ActParams;
 
 /* Scalar activations: forward(x, alpha) and backward(y, alpha) 
